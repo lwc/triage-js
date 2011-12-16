@@ -72,63 +72,43 @@ var Triage = function () {
 			this.portal.request( this._urlData('msg', msg, url, line) );
 		},
 
-		getBrowserMode: function(e) {
-	        if (e['arguments'] && e.stack) {
-	            return 'chrome';
-	        } else if (typeof e.message === 'string' && typeof window !== 'undefined' && window.opera) {
-	            // e.message.indexOf("Backtrace:") > -1 -> opera
-	            // !e.stacktrace -> opera
-	            if (!e.stacktrace) {
-	                return 'opera9'; // use e.message
-	            }
-	            // 'opera#sourceloc' in e -> opera9, opera10a
-	            if (e.message.indexOf('\n') > -1 && e.message.split('\n').length > e.stacktrace.split('\n').length) {
-	                return 'opera9'; // use e.message
-	            }
-	            // e.stacktrace && !e.stack -> opera10a
-	            if (!e.stack) {
-	                return 'opera10a'; // use e.stacktrace
-	            }
-	            // e.stacktrace && e.stack -> opera10b
-	            if (e.stacktrace.indexOf("called from line") < 0) {
-	                return 'opera10b'; // use e.stacktrace, format differs from 'opera10a'
-	            }
-	            // e.stacktrace && e.stack -> opera11
-	            return 'opera11'; // use e.stacktrace, format differs from 'opera10a', 'opera10b'
-	        } else if (e.stack) {
-	            return 'firefox';
-	        }
-	        return 'other';
-	    },
+		isFireFox: function(e) {
+			if (e.stack && typeof e['arguments'] === 'undefined') {
+				return true;
+			} else {
+				return false;
+			}
+		},
 
 		_urlData: function (name, exception, url, line, severity) {
 			var data = new Triage.UrlData();
+			var context = {
+				'level' : name,
+				'url' : url,
+				'useragent' : navigator.userAgent,
+				'cookies' : document.cookie,
+				'host' : this.host
+			};
+
+			if (severity) {
+				contest['severity'] = severity;
+			}
+
 			data
-				.add('application', this.application)
-				.add('host', this.host)
+				.add('project', this.application)
 				.add('language', this.language)
-				.add('level', name)
 				.add('line', line)
 				.add('type', 'error')
 				.add('message', exception)
-				.add('context', {
-					'url' : url,
-					'useragent' : navigator.userAgent,
-					'cookies' : document.cookie,
-					'host' : this.host
-				});
+				.add('context', severity);
 
 			// In instance (IE, Safari) when printStackTrace fails, nothing should happen.
-			if (this.getBrowserMode(this.error) !== 'firefox') {
+			if (!this.isFireFox(this.error)) {
 				try {
-					data.add('stacktrace', printStackTrace());
+					data.add('backtrace', printStackTrace());
 				} catch(err) {
 					// Do nothing
 				}
-			}
-
-			if (severity) {
-				data.add('severity', severity);
 			}
 
 			return '?data='+data.output();
