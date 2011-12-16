@@ -21,13 +21,13 @@
 					});
 
 					$("#createerror").click(function(){
-						throw 'Errro test message';
+						newbleh1;
 					});
 
 					$("#customerrors").click(function(){
 						try {
 							throw Error('custom error');
-						}catch(e){
+						} catch(e) {
 							Triage.logError('Custom error', document.URL, e.lineNumber, 'BAD');
 						}
 					});

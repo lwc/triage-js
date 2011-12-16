@@ -1,150 +1,6 @@
 var Triage = function () {
 	"use strict";
 
-	var Triage = {
-		application: '',
-		host: '',
-		language: 'JAVASCRIPT',
-		portal: null,
-		queue: [],
-
-		init: function (host, application) {
-			this.host = host;
-			this.application = application;
-
-			var self = this;
-
-			this.portal = new Triage.Portal(this.host);
-
-			window.onerror = function (msg, url, line) {
-				self.logError(msg, url, line);
-			};
-		},
-
-		logError: function (msg, url, line, severity) {
-			this.getPortal().request( this._urlData('error', msg, url, line, severity) );
-		},
-
-		logMsg: function (msg, url, line) {
-			this.getPortal().request( this._urlData('msg', msg, url, line) );
-		},
-
-		_urlData: function (name, exception, url, line, severity) {
-			var data = new Triage.UrlData();
-			data
-				.add('application', this.application)
-				.add('host', this.host)
-				.add('language', this.language)
-				.add('level', name)
-				.add('line', line)
-				.add('type', 'error')
-				.add('message', exception)
-				.add('context', {
-					'url' : url,
-					'useragent' : navigator.userAgent,
-					'cookies' : document.cookie,
-					'host' : this.host
-				})
-
-			//Print stack trace if external printStackTrace library is available
-			if(printStackTrace){
-				data.add('stacktrace', printStackTrace());
-			}
-
-			if (severity) {
-				data.add('severity', severity)
-			}
-
-			return '?data='+data.output();
-		},
-
-		getPortal: function(){
-			return this.portal;
-		}
-	}
-
-	Triage.UrlData = function() {
-		var data = {};
-
-		this.add = function (name, value) {
-			data[name] = value;
-
-			return this;
-		}
-
-		this.output = function(){
-			console.log(msgpack.pack({}))
-			return msgpack.pack(data);
-		}
-
-		return this;
-	}
-
-	Triage.Portal = function(host){
-		var queue = [];
-		var iframe = null;
-		var self = this;
-
-		/** Setup iframe **/
-		iframe = document.createElement('iframe');
-		iframe.style.width   = '1px';
-		iframe.style.height  = '1px';
-		iframe.style.display = 'none';
-
-		iframe.onload = function() {
-			if(queue.length > 0){
-				self.executeRequest();
-			}
-		}
-
-		if (document.body) {
-			document.body.appendChild(iframe);
-		} else {
-			_onWindowLoad(function(){
-				document.body.appendChild(iframe);
-			});
-		}
-
-		/** public functions **/
-
-		this.request = function(data){
-			queue.push(_getUrl(data));
-
-			if (queue.length === 1) {
-				this.executeRequest();
-			}
-		}
-
-		this.executeRequest = function() {
-			iframe.src = queue[0];
-			queue.shift();
-		}
-
-		/** private functions **/
-
-		function _onWindowLoad(callback) {
-			var previousOnload = window.onload;
-
-			if(typeof window.onload != 'function'){
-				window.onload = callback;
-				return;
-			}
-
-			window.onload = function(){
-				if(previousOnload){
-					previousOnload();
-				}
-
-				callback();
-			};
-		}
-
-		function _getUrl(data){
-			return 'http://'+host + '/api/log'+data;
-		}
-
-		return this;
-	}
 
 	// Domain Public by Eric Wendelin http://eriwen.com/ (2008)
 	//                  Luke Smith http://lucassmith.name/ (2008)
@@ -171,6 +27,196 @@ var Triage = function () {
 	a.indexOf(location.hostname)},getSource:function(a){a in this.sourceCache||(this.sourceCache[a]=this.ajax(a).split("\n"));return this.sourceCache[a]},guessAnonymousFunctions:function(a){for(var b=0;b<a.length;++b){var d=/^(.*?)(?::(\d+))(?::(\d+))?(?: -- .+)?$/,c=a[b],f=/\{anonymous\}\(.*\)@(.*)/.exec(c);if(f){var e=d.exec(f[1]),d=e[1],f=e[2],e=e[3]||0;d&&this.isSameDomain(d)&&f&&(d=this.guessAnonymousFunction(d,f,e),a[b]=c.replace("{anonymous}",d))}}return a},guessAnonymousFunction:function(a,b){var d;
 	try{d=this.findFunctionName(this.getSource(a),b)}catch(c){d="getSource failed with url: "+a+", exception: "+c.toString()}return d},findFunctionName:function(a,b){for(var d=/function\s+([^(]*?)\s*\(([^)]*)\)/,c=/['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*function\b/,f=/['"]?([0-9A-Za-z_]+)['"]?\s*[:=]\s*(?:eval|new Function)\b/,e="",g,j=Math.min(b,20),h,i=0;i<j;++i)if(g=a[b-i-1],h=g.indexOf("//"),0<=h&&(g=g.substr(0,h)),g){e=g+e;if((g=c.exec(e))&&g[1])return g[1];if((g=d.exec(e))&&g[1])return g[1];if((g=f.exec(e))&&
 	g[1])return g[1]}return"(?)"}};
+
+
+	/**
+	*
+	*  Base64 encode / decode
+	*  http://www.webtoolkit.info/
+	*
+	**/
+	var Base64={_keyStr:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",encode:function(c){for(var a="",d,b,f,g,h,e,i=0,c=Base64._utf8_encode(c);i<c.length;)d=c.charCodeAt(i++),b=c.charCodeAt(i++),f=c.charCodeAt(i++),g=d>>2,d=(d&3)<<4|b>>4,h=(b&15)<<2|f>>6,e=f&63,isNaN(b)?h=e=64:isNaN(f)&&(e=64),a=a+this._keyStr.charAt(g)+this._keyStr.charAt(d)+this._keyStr.charAt(h)+this._keyStr.charAt(e);return a},decode:function(c){for(var a="",d,b,f,g,h,e=0,c=c.replace(/[^A-Za-z0-9\+\/\=]/g,"");e< c.length;)d=this._keyStr.indexOf(c.charAt(e++)),b=this._keyStr.indexOf(c.charAt(e++)),g=this._keyStr.indexOf(c.charAt(e++)),h=this._keyStr.indexOf(c.charAt(e++)),d=d<<2|b>>4,b=(b&15)<<4|g>>2,f=(g&3)<<6|h,a+=String.fromCharCode(d),64!=g&&(a+=String.fromCharCode(b)),64!=h&&(a+=String.fromCharCode(f));return a=Base64._utf8_decode(a)},_utf8_encode:function(c){for(var c=c.replace(/\r\n/g,"\n"),a="",d=0;d<c.length;d++){var b=c.charCodeAt(d);128>b?a+=String.fromCharCode(b):(127<b&&2048>b?a+=String.fromCharCode(b>> 6|192):(a+=String.fromCharCode(b>>12|224),a+=String.fromCharCode(b>>6&63|128)),a+=String.fromCharCode(b&63|128))}return a},_utf8_decode:function(c){for(var a="",d=0,b=c1=c2=0;d<c.length;)b=c.charCodeAt(d),128>b?(a+=String.fromCharCode(b),d++):191<b&&224>b?(c2=c.charCodeAt(d+1),a+=String.fromCharCode((b&31)<<6|c2&63),d+=2):(c2=c.charCodeAt(d+1),c3=c.charCodeAt(d+2),a+=String.fromCharCode((b&15)<<12|(c2&63)<<6|c3&63),d+=3);return a}};
+
+	var Triage = {
+		application: '',
+		host: '',
+		language: 'JAVASCRIPT',
+		portal: null,
+		queue: [],
+		error: null,
+
+		init: function (host, application) {
+			this.host = host;
+			this.application = application;
+
+			var self = this;
+
+			this.portal = new Triage.Portal(this.host);
+
+			try {
+				this.undef();
+			} catch(e) {
+				this.error = e;
+			}
+
+			window.onerror = function (msg, url, line) {
+				self.logError(msg, url, line);
+			};
+		},
+
+		logError: function (msg, url, line, severity) {
+			this.portal.request( this._urlData('error', msg, url, line, severity) );
+		},
+
+		logMsg: function (msg, url, line) {
+			this.portal.request( this._urlData('msg', msg, url, line) );
+		},
+
+		getBrowserMode: function(e) {
+	        if (e['arguments'] && e.stack) {
+	            return 'chrome';
+	        } else if (typeof e.message === 'string' && typeof window !== 'undefined' && window.opera) {
+	            // e.message.indexOf("Backtrace:") > -1 -> opera
+	            // !e.stacktrace -> opera
+	            if (!e.stacktrace) {
+	                return 'opera9'; // use e.message
+	            }
+	            // 'opera#sourceloc' in e -> opera9, opera10a
+	            if (e.message.indexOf('\n') > -1 && e.message.split('\n').length > e.stacktrace.split('\n').length) {
+	                return 'opera9'; // use e.message
+	            }
+	            // e.stacktrace && !e.stack -> opera10a
+	            if (!e.stack) {
+	                return 'opera10a'; // use e.stacktrace
+	            }
+	            // e.stacktrace && e.stack -> opera10b
+	            if (e.stacktrace.indexOf("called from line") < 0) {
+	                return 'opera10b'; // use e.stacktrace, format differs from 'opera10a'
+	            }
+	            // e.stacktrace && e.stack -> opera11
+	            return 'opera11'; // use e.stacktrace, format differs from 'opera10a', 'opera10b'
+	        } else if (e.stack) {
+	            return 'firefox';
+	        }
+	        return 'other';
+	    },
+
+		_urlData: function (name, exception, url, line, severity) {
+			var data = new Triage.UrlData();
+			data
+				.add('application', this.application)
+				.add('host', this.host)
+				.add('language', this.language)
+				.add('level', name)
+				.add('line', line)
+				.add('type', 'error')
+				.add('message', exception)
+				.add('context', {
+					'url' : url,
+					'useragent' : navigator.userAgent,
+					'cookies' : document.cookie,
+					'host' : this.host
+				});
+
+			// In instance (IE, Safari) when printStackTrace fails, nothing should happen.
+			if (this.getBrowserMode(this.error) !== 'firefox') {
+				try {
+					data.add('stacktrace', printStackTrace());
+				} catch(err) {
+					// Do nothing
+				}
+			}
+
+			if (severity) {
+				data.add('severity', severity);
+			}
+
+			return '?data='+data.output();
+		}
+	};
+
+	Triage.UrlData = function() {
+		var data = {};
+
+		this.add = function (name, value) {
+			data[name] = value;
+
+			return this;
+		};
+
+		this.output = function(){
+			console.log(data);
+			return encodeURIComponent(Base64.encode(JSON.stringify(data)));
+		};
+
+		return this;
+	};
+
+	Triage.Portal = function(host){
+		var queue = [];
+		var iframe = null;
+		var self = this;
+
+		/** Setup iframe **/
+		iframe = document.createElement('iframe');
+		iframe.style.width   = '1px';
+		iframe.style.height  = '1px';
+		iframe.style.display = 'none';
+
+		iframe.onload = function() {
+			if(queue.length > 0){
+				self.executeRequest();
+			}
+		};
+
+		if (document.body) {
+			document.body.appendChild(iframe);
+		} else {
+			_onWindowLoad(function() {
+				document.body.appendChild(iframe);
+			});
+		}
+
+		/** public functions **/
+
+		this.request = function(data) {
+			queue.push(_getUrl(data));
+
+			if (queue.length === 1) {
+				this.executeRequest();
+			}
+		};
+
+		this.executeRequest = function() {
+			iframe.src = queue[0];
+			queue.shift();
+		};
+
+		/** private functions **/
+
+		function _onWindowLoad(callback) {
+			var previousOnload = window.onload;
+
+			if(typeof window.onload != 'function'){
+				window.onload = callback;
+				return;
+			}
+
+			window.onload = function(){
+				if(previousOnload){
+					previousOnload();
+				}
+
+				callback();
+			};
+		}
+
+		function _getUrl(data){
+			return 'http://'+host + '/api/log'+data;
+		}
+
+		return this;
+	};
 
 	return Triage;
 }();
