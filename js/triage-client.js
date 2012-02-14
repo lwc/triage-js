@@ -157,7 +157,7 @@ var Triage = function () {
 		}
 
 		function _getUrl(data){
-			return 'http://'+host + '/api/log'+data;
+			return '//'+host + '/api/log'+data;
 		}
 
 		return this;
